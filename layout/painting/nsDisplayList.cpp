@@ -4253,19 +4253,38 @@ void nsDisplayBackgroundColor::WriteDebugInfo(std::stringstream& aStream) {
 nsRect nsDisplayOutline::GetBounds(nsDisplayListBuilder* aBuilder,
                                    bool* aSnap) const {
   *aSnap = false;
-  return mFrame->InkOverflowRectRelativeToSelf() + ToReferenceFrame();
+  return GetOuterRect() + ToReferenceFrame();
 }
 
-nsRect nsDisplayOutline::GetInnerRect() const {
+nsRect nsDisplayOutline::GetInnerRectForFrame(nsIFrame* aFrame) {
   if (nsRect* savedOutlineInnerRect =
-          mFrame->GetProperty(nsIFrame::OutlineInnerRectProperty())) {
+          aFrame->GetProperty(nsIFrame::OutlineInnerRectProperty())) {
     return *savedOutlineInnerRect;
   }
-  return mFrame->GetRectRelativeToSelf();
+  return aFrame->GetRectRelativeToSelf();
+}
+
+nsRect nsDisplayOutline::GetOuterRect() const {
+  nsRect rect = GetInnerRect();
+  rect.Inflate(mFrame->StyleOutline()->EffectiveOffsetFor(rect));
+  if (IsThemedOutline()) {
+    mFrame->PresContext()->Theme()->GetWidgetOverflow(
+        mFrame->PresContext()->DeviceContext(), mFrame,
+        StyleAppearance::FocusOutline, &rect);
+  } else {
+    rect.Inflate(mFrame->StyleOutline()->mOutlineWidth);
+  }
+  return rect;
+}
+
+void nsDisplayOutline::Merge(const nsDisplayItem* aItem) {
+  nsDisplayWrapList::Merge(aItem);
+  const auto* other = static_cast<const nsDisplayOutline*>(aItem);
+  mInnerRect = mInnerRect.UnionEdges(other->mInnerRect +
+                                    other->mFrame->GetOffsetTo(mFrame));
 }
 
 void nsDisplayOutline::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
-  // TODO join outlines together
   MOZ_ASSERT(mFrame->StyleOutline()->ShouldPaintOutline(),
              "Should have not created a nsDisplayOutline!");
 

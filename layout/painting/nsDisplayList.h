@@ -4677,35 +4677,6 @@ class nsDisplayBoxShadowInner final : public nsPaintedDisplayItem {
 };
 
 /**
- * The standard display item to paint the CSS outline of a frame.
- */
-class nsDisplayOutline final : public nsPaintedDisplayItem {
- public:
-  nsDisplayOutline(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
-      : nsPaintedDisplayItem(aBuilder, aFrame) {
-    MOZ_COUNT_CTOR(nsDisplayOutline);
-  }
-
-  MOZ_COUNTED_DTOR_FINAL(nsDisplayOutline)
-
-  NS_DISPLAY_DECL_NAME("Outline", TYPE_OUTLINE)
-
-  WebRenderCommandsResult CreateWebRenderCommands(
-      wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
-      const StackingContextHelper& aSc,
-      layers::RenderRootStateManager* aManager,
-      nsDisplayListBuilder* aDisplayListBuilder) override;
-  bool IsInvisibleInRect(const nsRect& aRect) const override;
-  nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override;
-  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
-
- private:
-  nsRect GetInnerRect() const;
-  bool IsThemedOutline() const;
-  bool HasRadius() const;
-};
-
-/**
  * A class that lets you receive events within the frame bounds but never
  * paints.
  */
@@ -5030,6 +5001,56 @@ class nsDisplayWrapList : public nsPaintedDisplayItem {
   ContainerASRType mContainerASRType = ContainerASRType::Constant;
   bool mHasZIndexOverride;
   bool mClearingClipChain = false;
+};
+
+/**
+ * The standard display item to paint the CSS outline of a frame.
+ */
+class nsDisplayOutline final : public nsDisplayWrapList {
+ public:
+  nsDisplayOutline(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
+      : nsDisplayWrapList(aBuilder, aFrame),
+        mInnerRect(GetInnerRectForFrame(aFrame)) {
+    MOZ_COUNT_CTOR(nsDisplayOutline);
+  }
+
+  nsDisplayOutline(nsDisplayListBuilder* aBuilder,
+                   const nsDisplayOutline& aOther)
+      : nsDisplayWrapList(aBuilder, aOther), mInnerRect(aOther.mInnerRect) {
+    MOZ_COUNT_CTOR(nsDisplayOutline);
+  }
+
+  MOZ_COUNTED_DTOR_FINAL(nsDisplayOutline)
+
+  NS_DISPLAY_DECL_NAME("Outline", TYPE_OUTLINE)
+
+  WebRenderCommandsResult CreateWebRenderCommands(
+      wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
+      const StackingContextHelper& aSc,
+      layers::RenderRootStateManager* aManager,
+      nsDisplayListBuilder* aDisplayListBuilder) override;
+  bool IsInvisibleInRect(const nsRect& aRect) const override;
+  nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override;
+  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
+  bool CanMerge(const nsDisplayItem* aItem) const override {
+    return HasDifferentFrame(aItem) && HasSameTypeAndClip(aItem) &&
+           HasSameContent(aItem);
+  }
+  void Merge(const nsDisplayItem* aItem) override;
+  bool ShouldFlattenAway(nsDisplayListBuilder* aBuilder) override {
+    return false;
+  }
+
+ private:
+  static nsRect GetInnerRectForFrame(nsIFrame* aFrame);
+  nsRect GetInnerRect() const { return mInnerRect; }
+  nsRect GetOuterRect() const;
+  bool IsThemedOutline() const;
+  bool HasRadius() const;
+
+  nsRect mInnerRect;
+
+  NS_DISPLAY_ALLOW_CLONING()
 };
 
 class nsDisplayWrapper final : public nsDisplayWrapList {
