@@ -4281,7 +4281,7 @@ void nsDisplayOutline::Merge(const nsDisplayItem* aItem) {
   nsDisplayWrapList::Merge(aItem);
   const auto* other = static_cast<const nsDisplayOutline*>(aItem);
   mInnerRect = mInnerRect.UnionEdges(other->mInnerRect +
-                                    other->mFrame->GetOffsetTo(mFrame));
+                                     other->mFrame->GetOffsetTo(mFrame));
 }
 
 void nsDisplayOutline::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
@@ -4345,7 +4345,7 @@ WebRenderCommandsResult nsDisplayOutline::CreateWebRenderCommands(
 
 bool nsDisplayOutline::HasRadius() const {
   const auto& radius = mFrame->StyleBorder()->mBorderRadius;
-  return !nsLayoutUtils::HasNonZeroCorner(radius);
+  return nsLayoutUtils::HasNonZeroCorner(radius);
 }
 
 bool nsDisplayOutline::IsInvisibleInRect(const nsRect& aRect) const {
