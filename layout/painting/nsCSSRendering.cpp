@@ -991,7 +991,8 @@ nsCSSRendering::CreateBorderRendererForNonThemedOutline(
   nsRectCornerRadii twipsRadii;
 
   // get the radius for our outline
-  if (aForFrame->GetBorderRadii(twipsRadii)) {
+  const nsSize innerSize = aInnerRect.Size();
+  if (aForFrame->GetBorderRadii(innerSize, innerSize, Sides(), twipsRadii)) {
     RectCornerRadii innerRadii;
     ComputePixelRadii(twipsRadii, oneDevPixel, &innerRadii);
 
